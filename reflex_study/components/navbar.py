@@ -152,7 +152,6 @@ def navbar():
                             ),
                             background_color=rx.color("mauve", 6),
                             _hover=style_attribtues.POINTER,
-                            on_click=lambda: SystemStateForm.initialize(State.content),
                         )
                     )
                 ),

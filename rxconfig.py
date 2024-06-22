@@ -10,8 +10,6 @@ config = rx.Config(
     app_name="reflex_study",
 )
 
-SYSTEM_CONTENT_KEY = "system_content"
-
 CONFIG_FILE_PATH = Path(os.getcwd()) / os.environ.get(
     "SETTINGS_FILE_PATH", ".config.json"
 )

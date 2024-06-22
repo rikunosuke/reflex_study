@@ -1,11 +1,9 @@
-import json
 import os
-from pathlib import Path
 
 import reflex as rx
 from openai import OpenAI
 
-from rxconfig import CONFIG_FILE_PATH, SYSTEM_CONTENT_KEY
+from reflex_study.config_state import ConfigState
 
 # Checking if the API key is set properly
 if not os.getenv("OPENAI_API_KEY"):
@@ -42,8 +40,6 @@ class State(rx.State):
     # The name of the new chat.
     new_chat_name: str = ""
 
-    _default_content = "You are a friendly chatbot named Reflex. Respond in markdown."
-
     def create_chat(self):
         """Create a new chat."""
         # Add the new chat to the list of chats.
@@ -74,26 +70,6 @@ class State(rx.State):
         """
         return list(self.chats.keys())
 
-    @rx.var
-    def content(self) -> str:
-        with CONFIG_FILE_PATH.open("r") as file:
-            try:
-                config = json.load(file)
-            except json.JSONDecodeError:
-                return self._default_content
-        content = config.get(SYSTEM_CONTENT_KEY, self._default_content)
-        return content
-
-    def set_content(self, new_content: str):
-        with CONFIG_FILE_PATH.open("w+") as file:
-            try:
-                config = json.load(file)
-            except json.JSONDecodeError:
-                config = {}
-            config[SYSTEM_CONTENT_KEY] = new_content
-            file.seek(0)
-            json.dump(config, file, indent=2, ensure_ascii=False)
-
     async def process_question(self, form_data: dict[str, str]):
         # Get the question from the form
         question = form_data["question"]
@@ -122,11 +98,12 @@ class State(rx.State):
         self.processing = True
         yield
 
+        config_state = await self.get_state(ConfigState)
         # Build the messages.
         messages = [
             {
                 "role": "system",
-                "content": self.content,
+                "content": config_state.content,
             }
         ]
         for qa in self.chats[self.current_chat]:
