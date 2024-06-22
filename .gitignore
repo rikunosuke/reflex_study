@@ -19,3 +19,5 @@ frontend.zip
 poetry.lock
 venv/
 .idea
+.env
+.config.json

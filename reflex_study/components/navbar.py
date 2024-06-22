@@ -1,31 +1,42 @@
 import reflex as rx
 from reflex_study.state import State
 
+from . import style_attribtues
+from .system_form import system_content_form, SystemStateForm
+
+
 def sidebar_chat(chat: str) -> rx.Component:
     """A sidebar chat item.
 
     Args:
         chat: The chat item.
     """
-    return  rx.drawer.close(rx.hstack(
-        rx.button(
-            chat, on_click=lambda: State.set_chat(chat), width="80%", variant="surface"
-        ),
-        rx.button(
-            rx.icon(
-                tag="trash",
-                on_click=State.delete_chat,
-                stroke_width=1,
+    return rx.drawer.close(
+        rx.hstack(
+            rx.button(
+                chat,
+                on_click=lambda: State.set_chat(chat),
+                width="80%",
+                variant="surface",
+                _hover=style_attribtues.POINTER,
             ),
-            width="20%",
-            variant="surface",
-            color_scheme="red",
-        ),
-        width="100%",
-    ))
+            rx.button(
+                rx.icon(
+                    tag="trash",
+                    on_click=State.delete_chat,
+                    stroke_width=1,
+                ),
+                width="20%",
+                variant="surface",
+                color_scheme="red",
+                _hover=style_attribtues.POINTER,
+            ),
+            width="100%",
+        )
+    )
 
 
-def sidebar(trigger) -> rx.Component:
+def chat_sidebar(trigger) -> rx.Component:
     """The sidebar component."""
     return rx.drawer.root(
         rx.drawer.trigger(trigger),
@@ -37,6 +48,31 @@ def sidebar(trigger) -> rx.Component:
                     rx.divider(),
                     rx.foreach(State.chat_titles, lambda chat: sidebar_chat(chat)),
                     align_items="stretch",
+                    width="100%",
+                ),
+                top="auto",
+                right="auto",
+                height="100%",
+                width="20em",
+                padding="2em",
+                background_color=rx.color("mauve", 2),
+                outline="none",
+            )
+        ),
+        direction="left",
+    )
+
+
+def system_sidebar(trigger) -> rx.Component:
+    return rx.drawer.root(
+        rx.drawer.trigger(trigger),
+        rx.drawer.overlay(),
+        rx.drawer.portal(
+            rx.drawer.content(
+                rx.vstack(
+                    rx.heading("System Settings", color=rx.color("mauve", 11)),
+                    rx.divider(),
+                    system_content_form(),
                     width="100%",
                 ),
                 top="auto",
@@ -85,31 +121,39 @@ def navbar():
                 rx.heading("Reflex Chat"),
                 rx.desktop_only(
                     rx.badge(
-                    State.current_chat,
-                    rx.tooltip(rx.icon("info", size=14), content="The current selected chat."),
-                    variant="soft"
+                        State.current_chat,
+                        rx.tooltip(
+                            rx.icon("info", size=14),
+                            content="The current selected chat.",
+                        ),
+                        variant="soft",
                     )
                 ),
                 align_items="center",
             ),
             rx.hstack(
-                modal(rx.button("+ New chat")),
-                sidebar(
+                modal(rx.button("+ New chat", _hover=style_attribtues.POINTER)),
+                chat_sidebar(
                     rx.button(
                         rx.icon(
                             tag="messages-square",
                             color=rx.color("mauve", 12),
                         ),
                         background_color=rx.color("mauve", 6),
+                        _hover=style_attribtues.POINTER,
                     )
                 ),
-                rx.desktop_only(
-                    rx.button(
-                        rx.icon(
-                            tag="sliders-horizontal",
-                            color=rx.color("mauve", 12),
-                        ),
-                        background_color=rx.color("mauve", 6),
+                system_sidebar(
+                    rx.desktop_only(
+                        rx.button(
+                            rx.icon(
+                                tag="sliders-horizontal",
+                                color=rx.color("mauve", 12),
+                            ),
+                            background_color=rx.color("mauve", 6),
+                            _hover=style_attribtues.POINTER,
+                            on_click=lambda: SystemStateForm.initialize(State.content),
+                        )
                     )
                 ),
                 align_items="center",
