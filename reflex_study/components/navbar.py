@@ -2,7 +2,7 @@ import reflex as rx
 from reflex_study.state import State
 
 from . import style_attribtues
-from .system_form import system_content_form, SystemStateForm
+from .system_form import system_content_form, SystemFormState
 
 
 def sidebar_chat(chat: str) -> rx.Component:
@@ -63,28 +63,24 @@ def chat_sidebar(trigger) -> rx.Component:
     )
 
 
-def system_sidebar(trigger) -> rx.Component:
-    return rx.drawer.root(
-        rx.drawer.trigger(trigger),
-        rx.drawer.overlay(),
-        rx.drawer.portal(
-            rx.drawer.content(
-                rx.vstack(
-                    rx.heading("System Settings", color=rx.color("mauve", 11)),
-                    rx.divider(),
-                    system_content_form(),
-                    width="100%",
-                ),
-                top="auto",
-                right="auto",
-                height="100%",
-                width="20em",
-                padding="2em",
-                background_color=rx.color("mauve", 2),
-                outline="none",
-            )
+def system_form_dialog(trigger) -> rx.Component:
+    return rx.dialog.root(
+        rx.dialog.trigger(trigger),
+        rx.dialog.content(
+            rx.vstack(
+                rx.heading("System Settings", color=rx.color("mauve", 11)),
+                rx.divider(),
+                system_content_form(),
+                width="100%",
+            ),
+            top="auto",
+            right="auto",
+            height="100%",
+            width="20em",
+            padding="2em",
+            background_color=rx.color("mauve", 2),
+            outline="none",
         ),
-        direction="left",
     )
 
 
@@ -143,7 +139,7 @@ def navbar():
                         _hover=style_attribtues.POINTER,
                     )
                 ),
-                system_sidebar(
+                system_form_dialog(
                     rx.desktop_only(
                         rx.button(
                             rx.icon(

@@ -103,7 +103,7 @@ class State(rx.State):
         messages = [
             {
                 "role": "system",
-                "content": config_state.content,
+                "content": config_state.content + " Respond in markdown.",
             }
         ]
         for qa in self.chats[self.current_chat]:
@@ -113,11 +113,21 @@ class State(rx.State):
         # Remove the last mock answer.
         messages = messages[:-1]
 
+        params = {
+            "model": config_state.model,
+        }
+        if config_state.temperature is not None:
+            params["temperature"] = config_state.temperature
+        if config_state.seed is not None:
+            params["seed"] = config_state.seed
+        if config_state.top_p is not None:
+            params["top_p"] = config_state.top_p
+
         # Start a new session to answer the question.
         session = OpenAI().chat.completions.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
             messages=messages,
             stream=True,
+            **params,
         )
 
         # Stream the results, yielding after every word.
