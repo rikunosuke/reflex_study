@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  node4j:
+    image: neo4j:latest
+    container_name: node4j
+    environment:
+      - NEO4JLABS_PLUGINS=["apoc"]
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - $PWD/.neo4j/data:/data
+      - $PWD/.neo4j/logs:/logs

@@ -9,6 +9,9 @@
 **/package.json
 *.db
 *.py[cod]
+.config.json
+.env
+.idea
 .vscode
 .web
 __pycache__/
@@ -18,6 +21,4 @@ dist/*
 frontend.zip
 poetry.lock
 venv/
-.idea
-.env
-.config.json
+.neo4j/

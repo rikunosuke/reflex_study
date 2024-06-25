@@ -1,9 +1,14 @@
 import os
 
 import reflex as rx
+from langchain_community.graphs import Neo4jGraph
+from langchain_experimental.graph_transformers import LLMGraphTransformer
+from langchain_openai import ChatOpenAI
+from langchain_text_splitters import TokenTextSplitter
 from openai import OpenAI
 
 from reflex_study.config_state import ConfigState
+from reflex_study.langchain_api import LangChainAPI
 
 # Checking if the API key is set properly
 if not os.getenv("OPENAI_API_KEY"):
@@ -98,52 +103,73 @@ class State(rx.State):
         self.processing = True
         yield
 
-        config_state = await self.get_state(ConfigState)
         # Build the messages.
-        messages = [
-            {
-                "role": "system",
-                "content": config_state.content + " Respond in markdown.",
-            }
-        ]
-        for qa in self.chats[self.current_chat]:
+        messages = []
+        for qa in self.chats[self.current_chat][:-1]:
             messages.append({"role": "user", "content": qa.question})
             messages.append({"role": "assistant", "content": qa.answer})
 
-        # Remove the last mock answer.
-        messages = messages[:-1]
+        config_state = await self.get_state(ConfigState)
+        llm = await self.get_llm()
+        api = LangChainAPI(llm=llm)
 
-        params = {
-            "model": config_state.model,
-        }
-        if config_state.temperature is not None:
-            params["temperature"] = config_state.temperature
-        if config_state.seed is not None:
-            params["seed"] = config_state.seed
-        if config_state.top_p is not None:
-            params["top_p"] = config_state.top_p
-
-        # Start a new session to answer the question.
-        session = OpenAI().chat.completions.create(
+        answers = api.aquestion(
+            system_content=config_state.content,
             messages=messages,
-            stream=True,
-            **params,
+            question=question,
         )
 
         # Stream the results, yielding after every word.
-        for item in session:
-            if hasattr(item.choices[0].delta, "content"):
-                answer_text = item.choices[0].delta.content
-                # Ensure answer_text is not None before concatenation
-                if answer_text is not None:
-                    self.chats[self.current_chat][-1].answer += answer_text
-                else:
-                    # Handle the case where answer_text is None, perhaps log it or assign a default value
-                    # For example, assigning an empty string if answer_text is None
-                    answer_text = ""
-                    self.chats[self.current_chat][-1].answer += answer_text
-                self.chats = self.chats
-                yield
+        async for answer_text in answers:
+            # Ensure answer_text is not None before concatenation
+            if answer_text is not None:
+                self.chats[self.current_chat][-1].answer += answer_text
+            else:
+                # Handle the case where answer_text is None, perhaps log it or assign a default value
+                # For example, assigning an empty string if answer_text is None
+                answer_text = ""
+                self.chats[self.current_chat][-1].answer += answer_text
+            self.chats = self.chats
+            yield
 
         # Toggle the processing flag.
         self.processing = False
+
+    async def process_documents(self, form_data):
+        text: str = form_data["documents"]
+        if text == "":
+            return
+        self.processing = True
+        yield
+
+        await self.node4j_processing(text)
+
+        self.processing = False
+
+    async def node4j_processing(self, text: str):
+        text_splitter = TokenTextSplitter(chunk_size=512, chunk_overlap=125)
+        documents = text_splitter.create_documents([text])
+
+        llm = await self.get_llm()
+        llm_transformer = LLMGraphTransformer(llm=llm)
+        graph_documents = await llm_transformer.aconvert_to_graph_documents(
+            documents=documents
+        )
+        graph = Neo4jGraph()
+        graph.add_graph_documents(
+            graph_documents=graph_documents,
+            baseEntityLabel=True,
+            include_source=True,
+        )
+        print(graph_documents)
+        print("完了")
+
+    async def get_llm(self):
+        config_state: ConfigState = await self.get_state(ConfigState)
+
+        return ChatOpenAI(
+            temperature=config_state.temperature,
+            model_name=config_state.model,
+            seed=config_state.seed,
+            top_p=config_state.top_p,
+        )
